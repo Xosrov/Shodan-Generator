@@ -95,4 +95,3 @@ if gen.createAccount(username):
     gen.outro()
 else:
     print("Username|Email taken, try again!")
-
