@@ -37,11 +37,10 @@ class shodanGenerator:
             "referer": "https://account.shodan.io/register",
             "user-agent": "Mozilla/5.0 (Windows NT 6.1; rv:60.0) Gecko/20100101 Firefox/60.0",
         }
-
+        self.mail = mailer()
     def createAccount(self, user, passwd="123456789"):
         self.user = user
         self.passwd = passwd
-        self.mail = mailer()
         self.mail.create()
         page = self.session.get("https://account.shodan.io/register")
         token = re.search(r'csrf_token.*="(\w*)"',
@@ -61,12 +60,30 @@ class shodanGenerator:
         return None
 
     def activateAccount(self):
-        activation = re.search(
-            r'(https://account.shodan.io/activate/\w*)', self.mail.readMessages()).group(1)
+        # print(self.mail.readMessages())
+        retries = 15
+        retry = 0
+        while retry < retries:
+            try:
+                activation = re.search(
+                    r'(https://account.shodan.io/activate/\w*)', self.mail.readMessages()).group(1)
+            except KeyboardInterrupt:
+                return None
+            except:
+                retry = retry + 1
+                sleep(1)
+                continue
+            else:
+                break
+        if retry == retries:
+            print("Timeout, message not recieved in mail")
+            return None
         self.session.get(activation)
         print("Success!")
-
     def outro(self):
+        print("Your account info: ")
+        print("User: " + self.user)
+        print("Pass: " + self.passwd)
         token = re.search(r'csrf_token.*="(\w*)"', self.session.get(
             "https://account.shodan.io/login").content.decode('utf-8')).group(1)
         data = {
@@ -82,9 +99,6 @@ class shodanGenerator:
         res = self.session.get(
             "https://account.shodan.io/").content.decode('utf-8')
         api = re.search(r'<td>(\w*)<br /><br />', res).group(1)
-        print("Your account info: ")
-        print("User: " + self.user)
-        print("Pass: " + self.passwd)
         print("API Key: " + api)
 
 username = input("Pick a username: ")
@@ -95,3 +109,4 @@ if gen.createAccount(username):
     gen.outro()
 else:
     print("Username|Email taken, try again!")
+
